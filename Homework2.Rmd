@@ -1,0 +1,69 @@
+---
+title: "Homework2"
+author: "Safiya Alavi"
+date: "10/6/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Question 1 
+```{r q1, message = FALSE}
+setwd("/Users/safiyaalavi/Desktop/PSTAT 131/Homework 2/homework-2/data") 
+getwd()
+abalone_df <- read_csv("abalone.csv")
+age <- abalone_df[,9]+1.5
+abalone_df <- cbind(abalone_df, age)
+names(abalone_df)[10] <- "age"
+abalone_df %>% 
+  ggplot(aes(x = age)) +
+  geom_histogram(bins = 60) +
+  theme_bw()
+```
+The distribution of age predictor in the abalone data is clearly normally distributed. The distribution has positive skewness, or in other words the data is skewed to the right. The mean looks to be about 11. 
+
+## Question 2
+```{r q2, message = FALSE}
+set.seed(3435)
+abalone_split <- initial_split(abalone_df, prop = 3/4, strata = age)
+abalone_train <- training(abalone_split)
+abalone_test <- testing(abalone_split)
+```
+
+## Question 3 
+```{r q3, message = FALSE}
+simple_abalone_recipe <- 
+  recipe(age ~ type + longest_shell + diameter + height + whole_weight + shucked_weight + viscera_weight + shell_weight, data = abalone_train) %>% step_dummy("type") %>%  step_interact(~ longest_shell:diameter) %>% step_interact(~ shucked_weight:shell_weight) %>% step_center(all_predictors()) %>% step_scale(all_predictors())
+
+simple_abalone_recipe
+```
+We do not use rings to predict age because age is directly based on rings. Age is equal to 1.5 plus the value of rings, hence we cannot use rings to predict age because the information is the same. 
+
+## Question 4 
+```{r q4, message = FALSE}
+lm_model <- linear_reg() %>% 
+  set_engine("lm")
+```
+
+## Question 5
+```{r q5, message = FALSE}
+lm_wflow <- workflow() %>% 
+  add_model(lm_model) %>% 
+  add_recipe(simple_abalone_recipe)
+```
+
+## Question 6
+```{r q6}
+lm_fit <- fit(lm_wflow, abalone_train)
+lm_fit %>% extract_fit_parsnip() %>% tidy()
+#abalone_train_res <- predict(lm_fit, new_data = abalone_train)
+#abalone_train_res
+```
+
+ASK ABOUT:
+How to get type_F
+How to get interaction between type and shucked weight
+How to answer 6
