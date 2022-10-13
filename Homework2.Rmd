@@ -7,6 +7,10 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(tidymodels)
+library(tidyr)
+library(tidyverse)
 ```
 
 
@@ -36,7 +40,11 @@ abalone_test <- testing(abalone_split)
 ## Question 3 
 ```{r q3, message = FALSE}
 simple_abalone_recipe <- 
-  recipe(age ~ type + longest_shell + diameter + height + whole_weight + shucked_weight + viscera_weight + shell_weight, data = abalone_train) %>% step_dummy("type") %>%  step_interact(~ longest_shell:diameter) %>% step_interact(~ shucked_weight:shell_weight) %>% step_center(all_predictors()) %>% step_scale(all_predictors())
+  recipe(age ~ type + longest_shell + diameter + height + whole_weight + shucked_weight + viscera_weight + shell_weight, data = abalone_train) %>%
+  step_dummy(all_nominal_predictors()) %>%
+  step_interact(terms = ~ starts_with("type"):shucked_weight + longest_shell:diameter + shucked_weight:shell_weight) %>% 
+  step_center(all_predictors()) %>% 
+  step_scale(all_predictors())
 
 simple_abalone_recipe
 ```
@@ -56,14 +64,26 @@ lm_wflow <- workflow() %>%
 ```
 
 ## Question 6
-```{r q6}
+
+```{r q6, message = FALSE}
 lm_fit <- fit(lm_wflow, abalone_train)
 lm_fit %>% extract_fit_parsnip() %>% tidy()
-#abalone_train_res <- predict(lm_fit, new_data = abalone_train)
-#abalone_train_res
+
+new_abalone <- tibble(type = "F", longest_shell = 0.50, diameter = 0.1, height = 0.3, whole_weight = 4, shucked_weight = 1, viscera_weight = 2, shell_weight = 1, rings = 0)
+predict(lm_fit, new_data = new_abalone)
+
 ```
 
-ASK ABOUT:
-How to get type_F
-How to get interaction between type and shucked weight
-How to answer 6
+## Question 7
+
+```{r q7}
+abalone_train_res <- predict(lm_fit, new_data = abalone_train %>% select(-age))
+
+abalone_train_res <- bind_cols(abalone_train_res, abalone_train %>% select(age))
+abalone_metrics <- metric_set(rmse, rsq, mae)
+abalone_metrics(abalone_train_res, truth = age, 
+                estimate = .pred)
+
+```
+
+
